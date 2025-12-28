@@ -58,6 +58,11 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     await _save();
   }
 
+  Future<void> setMinimizeToTray(bool value) async {
+    state = state.copyWith(minimizeToTray: value);
+    await _save();
+  }
+
   Future<void> _save() async {
     await _box?.put('app_settings', state);
   }

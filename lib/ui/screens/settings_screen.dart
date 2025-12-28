@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/desktop_integration_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -227,6 +228,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 24),
+          Text(
+            'Desktop Integration',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: _DesktopIntegrationSection(),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Window Behavior',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: SwitchListTile(
+              title: const Text('Minimize to tray on close'),
+              subtitle: const Text('App continues running when window is closed'),
+              value: settings.minimizeToTray,
+              onChanged: (value) {
+                ref.read(settingsProvider.notifier).setMinimizeToTray(value);
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -363,5 +396,127 @@ class _IntervalDialogState extends State<_IntervalDialog> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+}
+
+class _DesktopIntegrationSection extends StatefulWidget {
+  @override
+  State<_DesktopIntegrationSection> createState() => _DesktopIntegrationSectionState();
+}
+
+class _DesktopIntegrationSectionState extends State<_DesktopIntegrationSection> {
+  String _status = 'Checking...';
+  bool _isInstalled = false;
+  bool _canIntegrate = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStatus();
+  }
+
+  Future<void> _checkStatus() async {
+    final status = await DesktopIntegrationService.getStatusMessage();
+    final installed = await DesktopIntegrationService.isDesktopEntryInstalled();
+    final canIntegrate = DesktopIntegrationService.canIntegrate;
+
+    if (mounted) {
+      setState(() {
+        _status = status;
+        _isInstalled = installed;
+        _canIntegrate = canIntegrate;
+      });
+    }
+  }
+
+  Future<void> _createEntry() async {
+    setState(() => _isLoading = true);
+
+    final success = await DesktopIntegrationService.createDesktopEntry();
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      await _checkStatus();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Desktop entry created successfully'
+              : 'Failed to create desktop entry'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeEntry() async {
+    setState(() => _isLoading = true);
+
+    final success = await DesktopIntegrationService.removeDesktopEntry();
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      await _checkStatus();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Desktop entry removed'
+              : 'Failed to remove desktop entry'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              _isInstalled ? Icons.check_circle : Icons.info_outline,
+              color: _isInstalled ? Colors.green : theme.colorScheme.onSurfaceVariant,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _status,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+        if (_canIntegrate) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              if (!_isInstalled)
+                FilledButton.icon(
+                  onPressed: _isLoading ? null : _createEntry,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.add),
+                  label: const Text('Create Desktop Entry'),
+                ),
+              if (_isInstalled)
+                OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _removeEntry,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Remove Desktop Entry'),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
   }
 }

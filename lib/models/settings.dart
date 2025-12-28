@@ -19,12 +19,16 @@ class AppSettings extends HiveObject {
   @HiveField(4)
   double volume;
 
+  @HiveField(5, defaultValue: true)
+  bool minimizeToTray;
+
   AppSettings({
     this.maxSnoozeCount = 3,
     List<int>? snoozeIntervals,
     this.defaultSoundAsset = 'assets/sounds/standard.mp3',
     List<String>? availableSounds,
     this.volume = 1.0,
+    this.minimizeToTray = true,
   })  : snoozeIntervals = snoozeIntervals ?? [5, 10, 15],
         availableSounds = availableSounds ??
             [
@@ -39,6 +43,7 @@ class AppSettings extends HiveObject {
     String? defaultSoundAsset,
     List<String>? availableSounds,
     double? volume,
+    bool? minimizeToTray,
   }) {
     return AppSettings(
       maxSnoozeCount: maxSnoozeCount ?? this.maxSnoozeCount,
@@ -46,6 +51,7 @@ class AppSettings extends HiveObject {
       defaultSoundAsset: defaultSoundAsset ?? this.defaultSoundAsset,
       availableSounds: availableSounds ?? this.availableSounds,
       volume: volume ?? this.volume,
+      minimizeToTray: minimizeToTray ?? this.minimizeToTray,
     );
   }
 
