@@ -1,12 +1,19 @@
+import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/alarm.dart';
 
 class StorageService {
   static const String _boxName = 'alarms';
+  static const String _appDataFolder = 'alarmd';
   late Box<Alarm> _box;
 
   Future<void> init() async {
-    await Hive.initFlutter();
+    // Use ~/.local/share/alarmd/ for app data (XDG compliant)
+    final home = Platform.environment['HOME'] ?? '/home';
+    final dataDir = Directory('$home/.local/share/$_appDataFolder');
+    await dataDir.create(recursive: true);
+
+    Hive.init(dataDir.path);
     Hive.registerAdapter(AlarmAdapter());
     _box = await Hive.openBox<Alarm>(_boxName);
   }

@@ -33,6 +33,19 @@ The app will automatically add itself to your application menu on first launch.
 
 > **GNOME Users:** Install the [AppIndicator Support](https://extensions.gnome.org/extension/615/appindicator-support/) extension for the system tray icon to appear.
 
+### Uninstall
+
+To completely remove Alarmd and all its data:
+
+```bash
+# Remove desktop entry and icon
+rm ~/.local/share/applications/alarmd.desktop
+rm ~/.local/share/icons/hicolor/256x256/apps/alarmd.png
+
+# Remove app data (alarms and settings)
+rm -rf ~/.local/share/alarmd
+```
+
 ## Usage
 
 1. Click the **New Alarm** button to create alarms
@@ -85,16 +98,31 @@ Output: `build/linux/x64/release/bundle/` (folder with executable and libraries)
 
 ## Creating a Release
 
-### 1. Build the AppImage
+### Prerequisites (one-time setup)
 
+**Using script:**
 ```bash
-# Build release first
-flutter build linux --release
+./scripts/install-appimage-tools.sh
+```
 
-# Install appimagetool (one-time)
+**Or manually:**
+```bash
 mkdir -p ~/.local/bin
 wget -O ~/.local/bin/appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
 chmod +x ~/.local/bin/appimagetool
+```
+
+### 1. Build the AppImage
+
+**Using script:**
+```bash
+./scripts/build-appimage.sh
+```
+
+**Or manually:**
+```bash
+# Build release
+flutter build linux --release
 
 # Create AppDir structure
 mkdir -p AppDir/usr/{bin,lib,share/icons/hicolor/256x256/apps}
