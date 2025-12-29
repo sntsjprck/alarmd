@@ -1,6 +1,6 @@
 # Alarmd
 
-A desktop alarm application for Linux.
+A simple desktop alarm clock application for Linux.
 
 ## Features
 
@@ -14,64 +14,85 @@ A desktop alarm application for Linux.
 - Persistent storage (alarms saved between sessions)
 - Light/dark theme support
 
-## Prerequisites
+## Installation
 
-### Linux
+### Download AppImage (Recommended)
 
-Install the required system dependencies:
+Download the latest AppImage from [Releases](https://github.com/sntsjprck/alarmd/releases):
+
+```bash
+# Install dependencies
+sudo apt-get install mpv pulseaudio ffmpeg libfuse2t64
+
+# Download, make executable, and run
+chmod +x Alarmd-*.AppImage
+./Alarmd-*.AppImage
+```
+
+The app will automatically add itself to your application menu on first launch.
+
+> **GNOME Users:** Install the [AppIndicator Support](https://extensions.gnome.org/extension/615/appindicator-support/) extension for the system tray icon to appear.
+
+## Usage
+
+1. Click the **New Alarm** button to create alarms
+2. Use **Quick Select** tab to choose multiple 15-minute time slots
+3. Use **Custom Time** tab for a specific time
+4. Toggle alarms on/off with the switch
+5. When an alarm rings, choose to **Dismiss** or **Snooze**
+
+---
+
+## Development
+
+### Prerequisites
+
+Install system dependencies for building:
 
 ```bash
 sudo apt-get install mpv libnotify-dev pulseaudio ffmpeg libayatana-appindicator3-dev
 ```
 
-- `mpv` - Audio playback
-- `libnotify-dev` - Desktop notifications
-- `pulseaudio` - Audio output (PulseAudio or PipeWire with PulseAudio compatibility)
-- `ffmpeg` - Required for audio normalization filters
-- `libayatana-appindicator3-dev` - System tray support
-
-> **GNOME Users:** Install the [AppIndicator and KStatusNotifierItem Support](https://extensions.gnome.org/extension/615/appindicator-support/) extension for tray icons to appear.
-
-## Installation
-
-### AppImage (Recommended)
-
-Download the latest AppImage from [Releases](https://github.com/sntsjprck/alarmd/releases):
+### Setup
 
 ```bash
-# Install FUSE (required for AppImages on Ubuntu 22.04+)
-sudo apt-get install libfuse2t64
+# Clone the repository
+git clone https://github.com/sntsjprck/alarmd.git
+cd alarmd
 
-# Download and run
-chmod +x Alarmd-*.AppImage
-./Alarmd-*.AppImage
-```
-
-The app will automatically create a desktop entry on first launch, adding it to your application menu.
-
-### Build from Source
-
-```bash
-# Get dependencies
+# Install Flutter dependencies
 flutter pub get
 
-# Generate Hive adapters (if needed)
+# Generate Hive adapters
 flutter pub run build_runner build
-
-# Run in debug mode
-flutter run -d linux
-
-# Build release
-flutter build linux
 ```
 
-### Build AppImage
+### Run in Debug Mode
+
+```bash
+flutter run -d linux
+```
+
+### Build Release
+
+```bash
+flutter build linux --release
+```
+
+Output: `build/linux/x64/release/bundle/` (folder with executable and libraries)
+
+---
+
+## Creating a Release
+
+### 1. Build the AppImage
 
 ```bash
 # Build release first
 flutter build linux --release
 
-# Download appimagetool (one-time)
+# Install appimagetool (one-time)
+mkdir -p ~/.local/bin
 wget -O ~/.local/bin/appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
 chmod +x ~/.local/bin/appimagetool
 
@@ -82,7 +103,7 @@ cp -r build/linux/x64/release/bundle/lib/* AppDir/usr/lib/
 cp assets/icon/app_icon.png AppDir/alarmd.png
 cp assets/icon/app_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/alarmd.png
 
-# Create AppRun
+# Create AppRun script
 cat > AppDir/AppRun << 'EOF'
 #!/bin/bash
 SELF=$(readlink -f "$0")
@@ -93,7 +114,7 @@ exec "${HERE}/usr/bin/alarmd" "$@"
 EOF
 chmod +x AppDir/AppRun
 
-# Create desktop file
+# Create desktop entry
 cat > AppDir/alarmd.desktop << 'EOF'
 [Desktop Entry]
 Name=Alarmd
@@ -106,19 +127,52 @@ Terminal=false
 StartupNotify=true
 EOF
 
-# Build AppImage
+# Build the AppImage
 ARCH=x86_64 ~/.local/bin/appimagetool --appimage-extract-and-run AppDir Alarmd-1.0.0-x86_64.AppImage
+
+# Cleanup
+rm -rf AppDir
 ```
 
-## Usage
+Output: `Alarmd-1.0.0-x86_64.AppImage` in project root (~17MB)
 
-1. Click the **New Alarm** button to create alarms
-2. Use **Quick Select** tab to choose multiple 15-minute time slots
-3. Use **Custom Time** tab for a specific time
-4. Toggle alarms on/off with the switch
-5. When an alarm rings, choose to **Dismiss** or **Snooze**
+### 2. Publish to GitHub Releases
+
+**Using GitHub Web:**
+1. Go to https://github.com/sntsjprck/alarmd/releases/new
+2. Create tag: `v1.0.0`
+3. Upload `Alarmd-1.0.0-x86_64.AppImage`
+4. Add release notes
+5. Publish
+
+**Using GitHub CLI:**
+```bash
+gh release create v1.0.0 Alarmd-1.0.0-x86_64.AppImage \
+  --title "Alarmd v1.0.0" \
+  --notes "Release notes here"
+```
+
+---
+
+## Project Structure
+
+```
+lib/
+├── main.dart                 # App entry point
+├── models/                   # Data models (Alarm, Settings)
+├── providers/                # Riverpod state management
+├── services/                 # Audio, notifications, tray, storage
+└── ui/
+    ├── screens/              # Home, Settings screens
+    ├── widgets/              # Reusable widgets
+    └── dialogs/              # Alarm creation dialogs
+```
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) - Technical design and architecture
 - [Implementation](docs/IMPLEMENTATION.md) - Implementation progress tracker
+
+## License
+
+MIT
