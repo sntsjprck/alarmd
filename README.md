@@ -16,6 +16,8 @@ A simple desktop alarm clock application for Linux.
 
 ## Installation
 
+> **Note:** This application has only been tested on Ubuntu 24.04.3. It may work on other Linux distributions but is not guaranteed.
+
 ### Download AppImage (Recommended)
 
 Download the latest AppImage from [Releases](https://github.com/sntsjprck/alarmd/releases):
@@ -30,7 +32,7 @@ mv Alarmd-*.AppImage ~/Applications/
 
 # Make executable and run
 chmod +x ~/Applications/Alarmd-*.AppImage
-~/Applications/Alarmd-*.AppImage
+~/Applications/Alarmd-*.AppImage &
 ```
 
 > **Important:** The AppImage file *is* the application. Move it to a permanent location like `~/Applications` before running. If you delete the AppImage file, the application is removed.

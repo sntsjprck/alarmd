@@ -1,7 +1,7 @@
 name: alarmd
 description: "A simple alarm clock application for Linux desktop."
 publish_to: 'none'
-version: 1.0.4+5
+version: 1.0.5+6
 
 environment:
   sdk: ^3.10.4
