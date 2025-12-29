@@ -39,19 +39,22 @@ class _CustomTimeDialogState extends State<CustomTimeDialog> {
     _labelController = TextEditingController(text: widget.initialLabel ?? '');
   }
 
-  void _pickTime() async {
+  void _pickTimeAndSave() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: _time,
     );
-    if (picked != null) {
-      setState(() {
-        _time = picked;
-      });
+    if (picked != null && mounted) {
+      final label = _labelController.text.trim();
+      Navigator.of(context).pop(CustomTimeResult(
+        hour: picked.hour,
+        minute: picked.minute,
+        label: label.isNotEmpty ? label : null,
+      ));
     }
   }
 
-  void _confirm() {
+  void _saveWithCurrentTime() {
     final label = _labelController.text.trim();
     Navigator.of(context).pop(CustomTimeResult(
       hour: _time.hour,
@@ -73,7 +76,7 @@ class _CustomTimeDialogState extends State<CustomTimeDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           InkWell(
-            onTap: _pickTime,
+            onTap: _pickTimeAndSave,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
@@ -91,7 +94,7 @@ class _CustomTimeDialogState extends State<CustomTimeDialog> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap to change',
+            'Tap to change time and save',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -112,8 +115,8 @@ class _CustomTimeDialogState extends State<CustomTimeDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _confirm,
-          child: const Text('Confirm'),
+          onPressed: _saveWithCurrentTime,
+          child: const Text('Save'),
         ),
       ],
     );

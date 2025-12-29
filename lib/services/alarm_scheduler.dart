@@ -39,6 +39,26 @@ class AlarmScheduler {
   }
 
   void updateAlarms(List<Alarm> alarms) {
+    // Clear triggered state for alarms whose time has changed
+    // This ensures edited alarms can trigger at their new time
+    for (final newAlarm in alarms) {
+      final oldAlarm = _alarms.where((a) => a.id == newAlarm.id).firstOrNull;
+      if (oldAlarm != null &&
+          (oldAlarm.hour != newAlarm.hour || oldAlarm.minute != newAlarm.minute)) {
+        _triggeredAlarms.remove(newAlarm.id);
+        _log('Cleared triggered state for alarm ${newAlarm.id} (time changed from ${oldAlarm.hour}:${oldAlarm.minute.toString().padLeft(2, '0')} to ${newAlarm.hour}:${newAlarm.minute.toString().padLeft(2, '0')})');
+      }
+    }
+
+    // Also clear triggered state for alarms that were re-enabled
+    for (final newAlarm in alarms) {
+      final oldAlarm = _alarms.where((a) => a.id == newAlarm.id).firstOrNull;
+      if (oldAlarm != null && !oldAlarm.enabled && newAlarm.enabled) {
+        _triggeredAlarms.remove(newAlarm.id);
+        _log('Cleared triggered state for alarm ${newAlarm.id} (re-enabled)');
+      }
+    }
+
     _alarms = alarms;
     _log('Alarms updated: ${alarms.length} alarms, ${alarms.where((a) => a.enabled).length} enabled');
   }

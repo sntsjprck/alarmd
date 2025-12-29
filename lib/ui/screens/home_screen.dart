@@ -64,7 +64,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: result.label,
             soundAsset: settings.defaultSoundAsset,
           );
-      ref.read(activeAlarmProvider.notifier).updateSchedulerAlarms(
+      await ref.read(activeAlarmProvider.notifier).updateSchedulerAlarms(
             ref.read(alarmListProvider),
           );
     }

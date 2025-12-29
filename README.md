@@ -24,10 +24,16 @@ Download the latest AppImage from [Releases](https://github.com/sntsjprck/alarmd
 # Install dependencies
 sudo apt-get install mpv pulseaudio ffmpeg libfuse2t64
 
-# Download, make executable, and run
-chmod +x Alarmd-*.AppImage
-./Alarmd-*.AppImage
+# Create a directory for the app and move the AppImage there
+mkdir -p ~/Applications
+mv Alarmd-*.AppImage ~/Applications/
+
+# Make executable and run
+chmod +x ~/Applications/Alarmd-*.AppImage
+~/Applications/Alarmd-*.AppImage
 ```
+
+> **Important:** The AppImage file *is* the application. Move it to a permanent location like `~/Applications` before running. If you delete the AppImage file, the application is removed.
 
 The app will automatically add itself to your application menu on first launch.
 
@@ -38,12 +44,20 @@ The app will automatically add itself to your application menu on first launch.
 To completely remove Alarmd and all its data:
 
 ```bash
+# Remove the AppImage file (adjust path if you placed it elsewhere)
+rm ~/Applications/Alarmd-*.AppImage
+
 # Remove desktop entry and icon
 rm ~/.local/share/applications/alarmd.desktop
 rm ~/.local/share/icons/hicolor/256x256/apps/alarmd.png
 
 # Remove app data (alarms and settings)
 rm -rf ~/.local/share/alarmd
+
+# Remove systemd timer (if enabled)
+systemctl --user disable --now alarmd.timer 2>/dev/null
+rm -f ~/.config/systemd/user/alarmd.timer ~/.config/systemd/user/alarmd.service
+systemctl --user daemon-reload
 ```
 
 ## Usage

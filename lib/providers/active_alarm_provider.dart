@@ -7,6 +7,7 @@ import '../services/audio_service.dart';
 import '../services/notification_service.dart';
 import '../services/alarm_scheduler.dart';
 import '../services/keep_alive_service.dart';
+import '../services/systemd_timer_service.dart';
 import 'alarm_provider.dart';
 import 'settings_provider.dart';
 
@@ -26,6 +27,10 @@ final keepAliveServiceProvider = Provider<KeepAliveService>((ref) {
   return KeepAliveService();
 });
 
+final systemdTimerServiceProvider = Provider<SystemdTimerService>((ref) {
+  return SystemdTimerService();
+});
+
 final activeAlarmProvider = StateNotifierProvider<ActiveAlarmNotifier, ActiveAlarmState>((ref) {
   final audioService = ref.watch(audioServiceProvider);
   final notificationService = ref.watch(notificationServiceProvider);
@@ -33,6 +38,7 @@ final activeAlarmProvider = StateNotifierProvider<ActiveAlarmNotifier, ActiveAla
   final alarmNotifier = ref.watch(alarmListProvider.notifier);
   final settings = ref.watch(settingsProvider);
   final keepAliveService = ref.watch(keepAliveServiceProvider);
+  final systemdTimerService = ref.watch(systemdTimerServiceProvider);
 
   return ActiveAlarmNotifier(
     audioService: audioService,
@@ -41,6 +47,7 @@ final activeAlarmProvider = StateNotifierProvider<ActiveAlarmNotifier, ActiveAla
     alarmNotifier: alarmNotifier,
     settings: settings,
     keepAliveService: keepAliveService,
+    systemdTimerService: systemdTimerService,
   );
 });
 
@@ -72,6 +79,7 @@ class ActiveAlarmNotifier extends StateNotifier<ActiveAlarmState> {
   final AlarmNotifier alarmNotifier;
   final AppSettings settings;
   final KeepAliveService keepAliveService;
+  final SystemdTimerService systemdTimerService;
 
   ActiveAlarmNotifier({
     required this.audioService,
@@ -80,6 +88,7 @@ class ActiveAlarmNotifier extends StateNotifier<ActiveAlarmState> {
     required this.alarmNotifier,
     required this.settings,
     required this.keepAliveService,
+    required this.systemdTimerService,
   }) : super(const ActiveAlarmState()) {
     alarmScheduler.onAlarmTriggered = _onAlarmTriggered;
   }
@@ -198,6 +207,11 @@ class ActiveAlarmNotifier extends StateNotifier<ActiveAlarmState> {
     final updatedAlarm = alarmNotifier.getAlarm(alarm.id);
     if (updatedAlarm != null) {
       alarmScheduler.scheduleSnooze(updatedAlarm, minutes);
+
+      // Also schedule a systemd wake as backup in case app is suspended
+      final snoozeTime = DateTime.now().add(Duration(minutes: minutes));
+      await systemdTimerService.scheduleSnoozeWake(snoozeTime);
+
       _log('Snooze scheduled for alarm ${alarm.id}');
     }
 
@@ -207,14 +221,21 @@ class ActiveAlarmNotifier extends StateNotifier<ActiveAlarmState> {
     );
   }
 
-  void startScheduler(List<Alarm> alarms) {
+  Future<void> startScheduler(List<Alarm> alarms) async {
     _log('Starting scheduler with ${alarms.length} alarms');
     alarmScheduler.updateAlarms(alarms);
     alarmScheduler.start();
+
+    // Initialize and sync systemd timer for reliable background wake
+    await systemdTimerService.init();
+    await systemdTimerService.syncAlarms(alarms);
   }
 
-  void updateSchedulerAlarms(List<Alarm> alarms) {
+  Future<void> updateSchedulerAlarms(List<Alarm> alarms) async {
     alarmScheduler.updateAlarms(alarms);
+
+    // Sync to systemd timer for reliable background wake
+    await systemdTimerService.syncAlarms(alarms);
   }
 
   void stopScheduler() {

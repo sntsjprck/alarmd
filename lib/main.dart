@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -12,6 +13,12 @@ import 'services/desktop_integration_service.dart';
 import 'services/tray_service.dart';
 import 'ui/screens/home_screen.dart';
 
+void _log(String message) {
+  final timestamp = DateTime.now().toIso8601String();
+  developer.log('[$timestamp] Main: $message', name: 'Alarmd');
+  debugPrint('[$timestamp] Main: $message');
+}
+
 Future<void> _cleanupOrphanedMpvProcesses() async {
   try {
     await Process.run('pkill', ['-f', 'mpv.*alarmd']);
@@ -23,6 +30,13 @@ late ProviderContainer _container;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Check for wake-check argument (launched by systemd timer)
+  final args = Platform.executableArguments;
+  final isWakeCheck = args.contains('--wake-check');
+  if (isWakeCheck) {
+    _log('Started via systemd timer wake-check - alarm catch-up will run');
+  }
 
   await _cleanupOrphanedMpvProcesses();
 
