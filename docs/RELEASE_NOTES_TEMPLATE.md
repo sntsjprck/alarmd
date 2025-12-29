@@ -64,9 +64,19 @@ Report issues at https://github.com/sntsjprck/alarmd/issues
 
 ## Checklist Before Release
 
-- [ ] Update version in `pubspec.yaml`
+- [ ] Update version in `pubspec.yaml` (this is the source of truth)
 - [ ] Test the app thoroughly
 - [ ] Build AppImage: `./scripts/build-appimage.sh`
 - [ ] Test the AppImage
-- [ ] Create GitHub release with notes
+- [ ] Create GitHub release with notes (version MUST match `pubspec.yaml`)
 - [ ] Upload AppImage to release
+
+## Getting the Version
+
+Always use the version from `pubspec.yaml` as the source of truth:
+
+```bash
+grep "^version:" pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1
+```
+
+Example output: `1.0.2`

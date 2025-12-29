@@ -10,6 +10,7 @@
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
+  FlView* view;  // Track the Flutter view to prevent duplicates
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -22,6 +23,17 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
+
+  // If we already have a Flutter view, just present the existing window
+  // This handles the case where a second instance activates the primary
+  if (self->view != nullptr) {
+    GtkWindow* window = gtk_application_get_active_window(GTK_APPLICATION(application));
+    if (window != nullptr) {
+      gtk_window_present(window);
+    }
+    return;
+  }
+
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
@@ -58,24 +70,24 @@ static void my_application_activate(GApplication* application) {
   fl_dart_project_set_dart_entrypoint_arguments(
       project, self->dart_entrypoint_arguments);
 
-  FlView* view = fl_view_new(project);
+  self->view = fl_view_new(project);
   GdkRGBA background_color;
   // Background defaults to black, override it here if necessary, e.g. #00000000
   // for transparent.
   gdk_rgba_parse(&background_color, "#000000");
-  fl_view_set_background_color(view, &background_color);
-  gtk_widget_show(GTK_WIDGET(view));
-  gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
+  fl_view_set_background_color(self->view, &background_color);
+  gtk_widget_show(GTK_WIDGET(self->view));
+  gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(self->view));
 
   // Show the window when Flutter renders.
   // Requires the view to be realized so we can start rendering.
-  g_signal_connect_swapped(view, "first-frame", G_CALLBACK(first_frame_cb),
+  g_signal_connect_swapped(self->view, "first-frame", G_CALLBACK(first_frame_cb),
                            self);
-  gtk_widget_realize(GTK_WIDGET(view));
+  gtk_widget_realize(GTK_WIDGET(self->view));
 
-  fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+  fl_register_plugins(FL_PLUGIN_REGISTRY(self->view));
 
-  gtk_widget_grab_focus(GTK_WIDGET(view));
+  gtk_widget_grab_focus(GTK_WIDGET(self->view));
 }
 
 // Implements GApplication::local_command_line.
@@ -93,6 +105,15 @@ static gboolean my_application_local_command_line(GApplication* application,
     return TRUE;
   }
 
+  // Check if another instance is already running
+  if (g_application_get_is_remote(application)) {
+    // We are a secondary instance - activate the primary and exit
+    g_application_activate(application);
+    *exit_status = 0;
+    return TRUE;
+  }
+
+  // We are the primary instance - continue with normal startup
   g_application_activate(application);
   *exit_status = 0;
 
@@ -157,7 +178,9 @@ static void my_application_class_init(MyApplicationClass* klass) {
   G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
 }
 
-static void my_application_init(MyApplication* self) {}
+static void my_application_init(MyApplication* self) {
+  self->view = nullptr;
+}
 
 MyApplication* my_application_new() {
   // Set the program name to the application ID, which helps various systems
