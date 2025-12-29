@@ -173,8 +173,8 @@ class AlarmScheduler {
 
     _log('Scheduling snooze for alarm ${alarm.id}: $minutes minutes (until ${snoozeTime.hour}:${snoozeTime.minute.toString().padLeft(2, '0')})');
 
-    // Remove from triggered map so it can trigger again
-    _triggeredAlarms.remove(alarm.id);
+    // Keep the alarm in _triggeredAlarms to prevent the grace period from
+    // re-triggering it. The snooze timer directly calls onAlarmTriggered.
 
     // Create a one-shot timer for the snooze
     Timer(Duration(minutes: minutes), () {
